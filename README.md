@@ -6,7 +6,6 @@ TaskFlow is a simple and intuitive **Flutter** app for managing your assignments
 
 ![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/dart-%230175C2.svg?style=for-the-badge&logo=dart&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 
 ---
 
@@ -59,7 +58,7 @@ Make sure you have the following installed:
 
 3. Then open your icloud then log in your icloud
 
-4.Make Sure your Iphone is enable "developer option" in "Privacy & Security > Developer Mode" 
+4. Make Sure your Iphone is enable "developer option" in "Privacy & Security > Developer Mode" 
 
 ---
 
@@ -83,7 +82,6 @@ taskflow/
 🗺️ Roadmap
 
 - [ ] Dark mode support
-- [ ] Cloud sync across devices
 - [ ] Categories/tags for assignments
 - [ ] Widgets for home screen
 
@@ -101,16 +99,10 @@ Contributions are welcome! If you'd like to help improve TaskFlow:
 
 ---
 
-📄 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
----
-
 ## 👤 Author
 
 **Your Name**
-- GitHub: Rxnzu.Git(markjuliusgalvez@gmail.com)
+- GitHub: Rxnzu.Git (markjuliusgalvez@gmail.com)
 
 ---
 
