@@ -82,7 +82,6 @@ taskflow/
 
 🗺️ Roadmap
 
-- [ ] Push notifications for upcoming deadlines
 - [ ] Dark mode support
 - [ ] Cloud sync across devices
 - [ ] Categories/tags for assignments
