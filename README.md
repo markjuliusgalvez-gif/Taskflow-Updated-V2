@@ -1,10 +1,10 @@
+> **ANDROID and IOS is now available.** TaskFlow is now available for iOS and android devices. 
 # 📋 TaskFlow
 
 TaskFlow is a simple and intuitive **Flutter** app for managing your assignments and tasks. Add what you need to do, track your progress, and mark items as complete once you're done — all in one clean, organized place.
 
 ![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/dart-%230175C2.svg?style=for-the-badge&logo=dart&logoColor=white)
-![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 
 ---
 
@@ -22,8 +22,10 @@ TaskFlow is a simple and intuitive **Flutter** app for managing your assignments
 
 ## 📱 Screenshots
 
-![Main Page](Screensht3.jpg)
-![Note Page](Screensht1.jpg)
+<p align="center">
+  <img src="Screensht1.jpg" width="230">
+  <img src="Screensht3.jpg" width="230">
+</p>
 
 ---
 
@@ -48,25 +50,18 @@ Make sure you have the following installed:
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/taskflow.git
-   cd taskflow
-   ```
+1. Download the Sideloadly
+  "make sure the itunes and icloud is already installed to your computer"
 
-2. **Install dependencies**
-   ```bash
-   flutter pub get
-   ```
+2. Then Open the "Sideloadly"
 
-3. **Run the app**
-   ```bash
-   flutter run
-   ```
+3. Then open your icloud then log in your icloud
+
+4. Make Sure your Iphone is enable "developer option" in "Privacy & Security > Developer Mode" 
 
 ---
 
-## 📂 Project Structure
+📂 Project Structure
 
 ```
 taskflow/
@@ -83,17 +78,15 @@ taskflow/
 
 ---
 
-## 🗺️ Roadmap
+🗺️ Roadmap
 
-- [ ] Push notifications for upcoming deadlines
 - [ ] Dark mode support
-- [ ] Cloud sync across devices
 - [ ] Categories/tags for assignments
 - [ ] Widgets for home screen
 
 ---
 
-## 🤝 Contributing
+🤝 Contributing
 
 Contributions are welcome! If you'd like to help improve TaskFlow:
 
@@ -105,16 +98,10 @@ Contributions are welcome! If you'd like to help improve TaskFlow:
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
----
-
 ## 👤 Author
 
 **Your Name**
-- GitHub: Rxnzu.Git(markjuliusgalvez@gmail.com)
+- GitHub: Rxnzu.Git (markjuliusgalvez@gmail.com)
 
 ---
 
