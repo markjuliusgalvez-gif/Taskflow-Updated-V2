@@ -22,9 +22,8 @@ TaskFlow is a simple and intuitive **Flutter** app for managing your assignments
 
 ## 📱 Screenshots
 
-| Home Screen | Add Task | Task Details |
-|:---:|:---:|:---:|
-| _coming soon_ | _coming soon_ | _coming soon_ |
+![Main Page](Screensht3.jpg)
+![Note Page](Screensht1.jpg)
 
 ---
 
@@ -115,7 +114,7 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 ## 👤 Author
 
 **Your Name**
-- GitHub: [@your-username](https://github.com/your-username)
+- GitHub: Rxnzu.Git(markjuliusgalvez@gmail.com)
 
 ---
 
