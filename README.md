@@ -1,4 +1,4 @@
-> 🍎 **android and ios is now available.** TaskFlow is currently available for iOS and android devices only. 
+> **ANDROID and IOS is now available.** TaskFlow is now available for iOS and android devices. 
 # 📋 TaskFlow
 
 TaskFlow is a simple and intuitive **Flutter** app for managing your assignments and tasks. Add what you need to do, track your progress, and mark items as complete once you're done — all in one clean, organized place.
