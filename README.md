@@ -23,8 +23,8 @@ TaskFlow is a simple and intuitive **Flutter** app for managing your assignments
 ## 📱 Screenshots
 
 <p align="center">
-  <img src="Screenshot1.jpg" width="230">
-  <img src="Screenshot3.jpg" width="230">
+  <img src="Screensht1.jpg" width="230">
+  <img src="Screensht3.jpg" width="230">
 </p>
 
 ---
