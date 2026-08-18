@@ -52,25 +52,18 @@ Make sure you have the following installed:
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/taskflow.git
-   cd taskflow
-   ```
+1. Download the Sideloadly
+  "make sure the itunes and icloud is already installed to your computer"
 
-2. **Install dependencies**
-   ```bash
-   flutter pub get
-   ```
+2. Then Open the "Sideloadly"
 
-3. **Run the app**
-   ```bash
-   flutter run
-   ```
+3. Then open your icloud then log in your icloud
+
+4.Make Sure your Iphone is enable "developer option" in "Privacy & Security > Developer Mode" 
 
 ---
 
-## 📂 Project Structure
+📂 Project Structure
 
 ```
 taskflow/
@@ -87,7 +80,7 @@ taskflow/
 
 ---
 
-## 🗺️ Roadmap
+🗺️ Roadmap
 
 - [ ] Push notifications for upcoming deadlines
 - [ ] Dark mode support
@@ -97,7 +90,7 @@ taskflow/
 
 ---
 
-## 🤝 Contributing
+🤝 Contributing
 
 Contributions are welcome! If you'd like to help improve TaskFlow:
 
@@ -109,7 +102,7 @@ Contributions are welcome! If you'd like to help improve TaskFlow:
 
 ---
 
-## 📄 License
+📄 License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
