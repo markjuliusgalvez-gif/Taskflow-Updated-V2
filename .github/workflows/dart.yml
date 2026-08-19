@@ -1,42 +1,74 @@
-name: iOS-ipa-build
+name: Build Flutter APK & IPA
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ master, main ]
+  release:
+    types: [ published ]
+  workflow_dispatch: {}
 
 jobs:
-  build-ios:
-    name: 🎉 iOS Build
-    runs-on: macos-latest
+  build-apk:
+    name: Build APK
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          architecture: x64
+
       - run: flutter pub get
-      
 
-      - run: pod repo update
-        working-directory: ios
+      # Explicitly build a split-per-abi release APK (NOT appbundle/.aab)
+      - run: flutter build apk --release
 
+      - name: Verify APK was produced
+        run: ls -la build/app/outputs/flutter-apk/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Attach APK to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+
+  build-ipa:
+    name: Build IPA (unsigned, for Sideloadly)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - run: flutter pub get
+
+      # --no-codesign skips Apple signing entirely.
+      # This produces build/ios/iphoneos/Runner.app, not a .ipa yet.
       - run: flutter build ios --release --no-codesign
 
-      - run: mkdir Payload
-        working-directory: build/ios/iphoneos
+      # Manually package Runner.app into an unsigned .ipa
+      # (Payload/Runner.app zipped up, which is the .ipa format)
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/ios/iphoneos/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          cd build/ios/iphoneos
+          zip -r app-unsigned.ipa Payload
 
-      - run: mv Runner.app/ Payload
-        working-directory: build/ios/iphoneos
-
-      - name: Zip output
-        run: zip -qq -r -9 FlutterIpaExport.ipa Payload
-        working-directory: build/ios/iphoneos
-
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
+      - uses: actions/upload-artifact@v4
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/ios/iphoneos/FlutterIpaExport.ipa
-          tag: v1.0
-          overwrite: true
-          body: "This is first release"
+          name: unsigned-ipa
+          path: build/ios/iphoneos/app-unsigned.ipa
+
+      - name: Attach IPA to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/ios/iphoneos/app-unsigned.ipa
