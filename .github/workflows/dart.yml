@@ -20,7 +20,6 @@ jobs:
 
       - run: flutter pub get
 
-      # Explicitly build a split-per-abi release APK (NOT appbundle/.aab)
       - run: flutter build apk --release
 
       - name: Verify APK was produced
@@ -47,20 +46,51 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: Flutter doctor (diagnostic info)
+        run: flutter doctor -v
+
       - run: flutter pub get
 
-      # --no-codesign skips Apple signing entirely.
-      # This produces build/ios/iphoneos/Runner.app, not a .ipa yet.
-      - run: flutter build ios --release --no-codesign
+      # Some Flutter iOS projects need pods installed explicitly before
+      # building, especially if plugins are used. This step won't fail
+      # the build if there's no Podfile.
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install --repo-update || echo "pod install skipped or failed, continuing"
+          cd ..
 
-      # Manually package Runner.app into an unsigned .ipa
-      # (Payload/Runner.app zipped up, which is the .ipa format)
+      # --no-codesign skips Apple signing entirely, which is required
+      # since we have no Apple Developer certs in CI.
+      - name: Build iOS app (no codesign)
+        run: flutter build ios --release --no-codesign --verbose
+
+      # This step will now FAIL LOUDLY (not silently) if Runner.app
+      # was never produced, instead of the zip step quietly making
+      # an empty/broken .ipa.
+      - name: Verify Runner.app exists
+        run: |
+          if [ ! -d "build/ios/iphoneos/Runner.app" ]; then
+            echo "ERROR: Runner.app was not built. Check the 'Build iOS app' step above for the real failure."
+            exit 1
+          fi
+          echo "Runner.app found:"
+          ls -la build/ios/iphoneos/Runner.app
+
       - name: Package unsigned IPA
         run: |
           mkdir -p build/ios/iphoneos/Payload
           cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
           cd build/ios/iphoneos
           zip -r app-unsigned.ipa Payload
+
+      - name: Verify IPA was created
+        run: |
+          if [ ! -f "build/ios/iphoneos/app-unsigned.ipa" ]; then
+            echo "ERROR: app-unsigned.ipa was not created."
+            exit 1
+          fi
+          ls -la build/ios/iphoneos/app-unsigned.ipa
 
       - uses: actions/upload-artifact@v4
         with:
