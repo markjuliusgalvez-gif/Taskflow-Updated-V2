@@ -1,0 +1,35 @@
+name: Build Flutter APK & IPA
+
+on:
+  push:
+    tags:
+      - 'v*'          # Only run when you push a tag like v1.0.0
+  workflow_dispatch:  # Still allow manual runs
+
+jobs:
+  build:
+    runs-on: macos-latest   # or ubuntu-latest if you only need APK
+
+    steps:
+      # ... your existing steps (checkout, setup flutter, build apk, build ipa, etc.)
+
+      # === Upload to Artifacts (optional but useful) ===
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TaskFlow-Builds
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/ios/ipa/*.ipa
+
+      # === Create GitHub Release + attach APK & IPA ===
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/ios/ipa/*.ipa
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
