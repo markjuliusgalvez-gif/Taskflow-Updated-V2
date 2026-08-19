@@ -2,104 +2,103 @@ name: Build Flutter APK & IPA
 
 on:
   push:
-    tags:
-      - 'v*' # Triggers on tags like v1.0.0
-  workflow_dispatch:
-
-permissions:
-  contents: write # Required to create releases and attach assets
+    branches: [ master, main ]
+  release:
+    types: [ published ]
+  workflow_dispatch: {}
 
 jobs:
-  # -------------------------------------------------------------
-  # JOB 1: Build Android APK (Runs on Linux)
-  # -------------------------------------------------------------
   build-apk:
+    name: Build APK
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
-      - name: Install Dependencies
-        run: flutter pub get
+      - run: flutter pub get
 
-      - name: Build APK
-        run: flutter build apk --release
+      - run: flutter build apk --release
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+      - name: Verify APK was produced
+        run: ls -la build/app/outputs/flutter-apk/
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
+          name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-  # -------------------------------------------------------------
-  # JOB 2: Build iOS IPA (Runs on macOS)
-  # -------------------------------------------------------------
+      - name: Attach APK to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+
   build-ipa:
+    name: Build IPA (unsigned, for Sideloadly)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
-      - name: Install Dependencies
-        run: flutter pub get
+      - name: Flutter doctor (diagnostic info)
+        run: flutter doctor -v
 
-      - name: Build iOS IPA (Unsigned)
-        run: flutter build ipa --release --no-codesign
+      - run: flutter pub get
 
-      # Creates a zip payload if an .ipa isn't automatically structured without signing
-      - name: Package Unsigned IPA
+      # Some Flutter iOS projects need pods installed explicitly before
+      # building, especially if plugins are used. This step won't fail
+      # the build if there's no Podfile.
+      - name: Install CocoaPods dependencies
         run: |
-          mkdir -p Payload
-          mv build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app Payload/
-          zip -r build/ios/ipa/Runner-unsigned.ipa Payload
+          cd ios
+          pod install --repo-update || echo "pod install skipped or failed, continuing"
+          cd ..
 
-      - name: Upload IPA Artifact
-        uses: actions/upload-artifact@v4
+      # --no-codesign skips Apple signing entirely, which is required
+      # since we have no Apple Developer certs in CI.
+      - name: Build iOS app (no codesign)
+        run: flutter build ios --release --no-codesign --verbose
+
+      # This step will now FAIL LOUDLY (not silently) if Runner.app
+      # was never produced, instead of the zip step quietly making
+      # an empty/broken .ipa.
+      - name: Verify Runner.app exists
+        run: |
+          if [ ! -d "build/ios/iphoneos/Runner.app" ]; then
+            echo "ERROR: Runner.app was not built. Check the 'Build iOS app' step above for the real failure."
+            exit 1
+          fi
+          echo "Runner.app found:"
+          ls -la build/ios/iphoneos/Runner.app
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/ios/iphoneos/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          cd build/ios/iphoneos
+          zip -r app-unsigned.ipa Payload
+
+      - name: Verify IPA was created
+        run: |
+          if [ ! -f "build/ios/iphoneos/app-unsigned.ipa" ]; then
+            echo "ERROR: app-unsigned.ipa was not created."
+            exit 1
+          fi
+          ls -la build/ios/iphoneos/app-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: app-release-ipa
-          path: build/ios/ipa/Runner-unsigned.ipa
+          name: unsigned-ipa
+          path: build/ios/iphoneos/app-unsigned.ipa
 
-  # -------------------------------------------------------------
-  # JOB 3: Publish to GitHub Releases (Runs after builds finish)
-  # -------------------------------------------------------------
-  release:
-    needs: [build-apk, build-ipa]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - name: Download APK Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: app-release-apk
-          path: output
-
-      - name: Download IPA Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: app-release-ipa
-          path: output
-
-      - name: Create Release and Upload Files
+      - name: Attach IPA to GitHub Release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            output/app-release.apk
-            output/Runner-unsigned.ipa
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          files: build/ios/iphoneos/app-unsigned.ipa
