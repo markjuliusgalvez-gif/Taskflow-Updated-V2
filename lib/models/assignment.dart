@@ -12,7 +12,7 @@ class Assignment {
     required this.id,
     required this.title,
     this.note,
-    this.status = AssignmentStatus.unfinished,
+    this.status = AssignmentStatus.pending,
     DateTime? createdAt,
     this.deadline,
   }) : createdAt = createdAt ?? DateTime.now();

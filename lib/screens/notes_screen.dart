@@ -10,11 +10,14 @@ class NotesScreen extends StatefulWidget {
   State<NotesScreen> createState() => NotesScreenState();
 }
 
-class NotesScreenState extends State<NotesScreen> {
+class NotesScreenState extends State<NotesScreen> with AutomaticKeepAliveClientMixin {
   final StorageService _storage = StorageService();
   final Uuid _uuid = const Uuid();
   List<Note> _notes = [];
   bool _loading = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -146,6 +149,7 @@ class NotesScreenState extends State<NotesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final sorted = List<Note>.from(_notes)..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
 
     return Column(
@@ -189,6 +193,28 @@ class _NoteCard extends StatelessWidget {
     required this.onDelete,
   });
 
+  void _showOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('Delete Note', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(ctx);
+                onDelete();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final body = note.content.trim();
@@ -204,40 +230,58 @@ class _NoteCard extends StatelessWidget {
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       onDismissed: (_) => onDelete(),
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  note.title,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                ),
-                if (hasBody) ...[
-                  const SizedBox(height: 6),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Card(
+          elevation: 0,
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            onLongPress: () => _showOptions(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    body,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+                    note.title,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
+                  ),
+                  if (hasBody) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      body,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Updated ${_formatUpdated(note.updatedAt)}',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      height: 1.4,
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.outline,
                     ),
                   ),
                 ],
-                const SizedBox(height: 8),
-                Text(
-                  'Updated ${_formatUpdated(note.updatedAt)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.outline,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

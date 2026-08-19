@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'models/assignment.dart';
@@ -166,14 +167,84 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Subject> _subjects = [];
   bool _loading = true;
   String _searchQuery = '';
+  AssignmentStatus? _assignmentStatusFilter;
   int _currentIndex = 0;
   final GlobalKey<NotesScreenState> _notesScreenKey = GlobalKey<NotesScreenState>();
+  Timer? _deadlineTimer;
+  final Set<String> _notifiedAssignmentIds = {};
 
   @override
   void initState() {
     super.initState();
     _notifications.init();
     _loadData();
+    _startDeadlineTimer();
+  }
+
+  void _startDeadlineTimer() {
+    _deadlineTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted || _loading) return;
+      _applyDeadlineChecks();
+    });
+  }
+
+  Future<void> _applyDeadlineChecks() async {
+    final now = DateTime.now();
+    final unfinished = <String>[];
+    final newIds = <String>[];
+
+    for (final subject in _subjects) {
+      for (final assignment in subject.assignments) {
+        if (assignment.status == AssignmentStatus.pending &&
+            assignment.deadline != null &&
+            !_notifiedAssignmentIds.contains(assignment.id) &&
+            (now.isAtSameMomentAs(assignment.deadline!) ||
+                now.isAfter(assignment.deadline!))) {
+          assignment.status = AssignmentStatus.unfinished;
+          unfinished.add(assignment.title);
+          newIds.add(assignment.id);
+        }
+      }
+    }
+
+    if (unfinished.isNotEmpty) {
+      for (final id in newIds) {
+        _notifiedAssignmentIds.add(id);
+      }
+      await _save();
+      if (mounted) {
+        setState(() {});
+        await showDialog(
+          context: context,
+          barrierColor: Colors.black87,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Assignment Update'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('The following assignment(s) have been marked as unfinished:'),
+                  const SizedBox(height: 12),
+                  ...unfinished.map(
+                    (title) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Text('• $title'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadData() async {
@@ -182,6 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _subjects = data;
       _loading = false;
     });
+    await _applyDeadlineChecks();
   }
 
   Future<void> _save() async {
@@ -542,17 +614,18 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: AssignmentStatus.values.map((status) {
-            return ListTile(
-              leading: Icon(_statusIcon(status), color: _statusColor(status)),
-              title: Text(_statusLabel(status)),
-              onTap: () {
-                setState(() => assignment.status = status);
-                _save();
-                Navigator.pop(ctx);
-              },
-            );
-          }).toList(),
+          children: [
+            for (final status in const [AssignmentStatus.pending, AssignmentStatus.finished])
+              ListTile(
+                leading: Icon(_statusIcon(status), color: _statusColor(status)),
+                title: Text(_statusLabel(status)),
+                onTap: () {
+                  setState(() => assignment.status = status);
+                  _save();
+                  Navigator.pop(ctx);
+                },
+              ),
+          ],
         ),
       ),
     );
@@ -625,13 +698,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Subject> get _filteredSubjects {
-    if (_searchQuery.isEmpty) return _subjects;
-    final q = _searchQuery.toLowerCase();
-    return _subjects
-        .where((s) =>
-            s.name.toLowerCase().contains(q) ||
-            s.assignments.any((a) => a.title.toLowerCase().contains(q)))
-        .toList();
+    Iterable<Subject> subjects = _subjects;
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      subjects = subjects.where((s) =>
+          s.name.toLowerCase().contains(q) ||
+          s.assignments.any((a) => a.title.toLowerCase().contains(q)));
+    }
+    if (_assignmentStatusFilter != null) {
+      subjects = subjects.where((s) =>
+          s.assignments.any((a) => a.status == _assignmentStatusFilter));
+    }
+    return subjects.toList();
   }
 
   @override
@@ -655,38 +733,69 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: _loading
-          ? AnimatedOpacity(
-              opacity: _loading ? 1 : 0,
-              duration: const Duration(milliseconds: 300),
-              child: const Center(child: CircularProgressIndicator()),
-            )
-          : _currentIndex == 0
-              ? _subjects.isEmpty
-                  ? AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 400),
-                      child: _buildEmptyState(),
-                    )
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _currentIndex,
+            children: [
+              _subjects.isEmpty
+                  ? _buildEmptyState()
                   : Column(
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: 'Search subjects or assignments...',
-                              prefixIcon: const Icon(Icons.search),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
-                            onChanged: (v) => setState(() => _searchQuery = v),
-                          ),
-                        ),
-                        Expanded(
+                         Padding(
+                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                           child: TextField(
+                             decoration: InputDecoration(
+                               hintText: 'Search subjects or assignments...',
+                               prefixIcon: const Icon(Icons.search),
+                               border: OutlineInputBorder(
+                                 borderRadius: BorderRadius.circular(16),
+                               ),
+                               contentPadding: const EdgeInsets.symmetric(
+                                 horizontal: 16,
+                                 vertical: 12,
+                               ),
+                             ),
+                             onChanged: (v) => setState(() => _searchQuery = v),
+                           ),
+                         ),
+                         Padding(
+                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                           child: SingleChildScrollView(
+                             scrollDirection: Axis.horizontal,
+                             child: Row(
+                               children: [
+                                 _FilterChip(
+                                   label: 'All',
+                                   selected: _assignmentStatusFilter == null,
+                                   onTap: () => setState(() => _assignmentStatusFilter = null),
+                                 ),
+                                 const SizedBox(width: 8),
+                                 _FilterChip(
+                                   label: 'Unfinished',
+                                   selected: _assignmentStatusFilter == AssignmentStatus.unfinished,
+                                   color: Colors.red,
+                                   onTap: () => setState(() => _assignmentStatusFilter = AssignmentStatus.unfinished),
+                                 ),
+                                 const SizedBox(width: 8),
+                                 _FilterChip(
+                                   label: 'Pending',
+                                   selected: _assignmentStatusFilter == AssignmentStatus.pending,
+                                   color: Colors.orange,
+                                   onTap: () => setState(() => _assignmentStatusFilter = AssignmentStatus.pending),
+                                 ),
+                                 const SizedBox(width: 8),
+                                 _FilterChip(
+                                   label: 'Finished',
+                                   selected: _assignmentStatusFilter == AssignmentStatus.finished,
+                                   color: Colors.green,
+                                   onTap: () => setState(() => _assignmentStatusFilter = AssignmentStatus.finished),
+                                 ),
+                               ],
+                             ),
+                           ),
+                         ),
+                         Expanded(
                           child: ListView.builder(
                             padding: const EdgeInsets.only(bottom: 80),
                             itemCount: filtered.length,
@@ -696,8 +805,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ],
-                    )
-              : NotesScreen(key: _notesScreenKey),
+                    ),
+              NotesScreen(key: _notesScreenKey),
+            ],
+          ),
+          if (_loading)
+            AnimatedOpacity(
+              opacity: _loading ? 1 : 0,
+              duration: const Duration(milliseconds: 300),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -813,7 +932,14 @@ class _HomeScreenState extends State<HomeScreen> {
       statusColor: _statusColor,
       statusLabel: _statusLabel,
       formatDeadline: _formatDeadline,
+      statusFilter: _assignmentStatusFilter,
     );
+  }
+
+  @override
+  void dispose() {
+    _deadlineTimer?.cancel();
+    super.dispose();
   }
 }
 
@@ -830,6 +956,7 @@ class _SubjectCard extends StatefulWidget {
   final Color Function(AssignmentStatus) statusColor;
   final String Function(AssignmentStatus) statusLabel;
   final String Function(DateTime) formatDeadline;
+  final AssignmentStatus? statusFilter;
 
   const _SubjectCard({
     required this.subject,
@@ -844,6 +971,7 @@ class _SubjectCard extends StatefulWidget {
     required this.statusColor,
     required this.statusLabel,
     required this.formatDeadline,
+    this.statusFilter,
   });
 
   @override
@@ -869,6 +997,11 @@ class _SubjectCardState extends State<_SubjectCard> {
   @override
   Widget build(BuildContext context) {
     final subject = widget.subject;
+    final assignments = widget.statusFilter == null
+        ? subject.assignments
+        : subject.assignments
+            .where((a) => a.status == widget.statusFilter)
+            .toList();
 
     return AnimatedOpacity(
       opacity: 1,
@@ -937,13 +1070,13 @@ class _SubjectCardState extends State<_SubjectCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${subject.assignments.length} assignment${subject.assignments.length == 1 ? '' : 's'}',
+                        '${assignments.length} assignment${assignments.length == 1 ? '' : 's'}',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 6),
-                      _AssignmentStatusIndicator(assignments: subject.assignments),
+                      _AssignmentStatusIndicator(assignments: assignments),
                     ],
                   ),
                   trailing: PopupMenuButton<String>(
@@ -964,11 +1097,13 @@ class _SubjectCardState extends State<_SubjectCard> {
                     ],
                   ),
                   children: [
-                    if (subject.assignments.isEmpty)
+                    if (assignments.isEmpty)
                       Padding(
                         padding: const EdgeInsets.all(20),
                         child: Text(
-                          'No assignments yet. Tap ⋮ → Add Assignment',
+                          widget.statusFilter == null
+                              ? 'No assignments yet. Tap ⋮ → Add Assignment'
+                              : 'No ${widget.statusLabel(widget.statusFilter!).toLowerCase()} assignments',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.outline,
                             fontStyle: FontStyle.italic,
@@ -976,7 +1111,7 @@ class _SubjectCardState extends State<_SubjectCard> {
                         ),
                       )
                     else
-                      ...subject.assignments.map((assignment) {
+                      ...assignments.map((assignment) {
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           minLeadingWidth: 0,
@@ -1146,6 +1281,36 @@ class _StatusDot extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final Color? color;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveColor = color ?? Theme.of(context).colorScheme.primary;
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      selectedColor: effectiveColor.withValues(alpha: 0.2),
+      checkmarkColor: effectiveColor,
+      labelStyle: TextStyle(
+        color: selected ? effectiveColor : Theme.of(context).colorScheme.onSurfaceVariant,
+        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+      ),
     );
   }
 }
