@@ -5,7 +5,6 @@ Add what you need to do, track your progress, and mark items as complete — all
 
 ![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-%230175C2.svg?style=for-the-badge&logo=dart&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 ---
 
@@ -18,16 +17,6 @@ Add what you need to do, track your progress, and mark items as complete — all
 - 🔍 **Filter & Sort** — View tasks by status (pending/completed) or sort by due date
 - 🎨 **Clean, Minimal UI** — Distraction-free design so you can focus on getting things done
 - 💾 **Local Storage** — Your tasks are saved on-device — no internet required
-
----
-
-## 📱 Screenshots
-
-| Main Page | Note / Detail Page |
-|-----------|--------------------|
-| ![Main Page](Screenshots/main_page.jpg) | ![Note Page](Screenshots/note_page.jpg) |
-
-> **Tip:** Rename your screenshot files and put them in a `Screenshots/` folder for cleaner paths.
 
 ---
 
@@ -49,10 +38,3 @@ Add what you need to do, track your progress, and mark items as complete — all
 - [Flutter SDK](https://docs.flutter.dev/get-started/install)
 - Android Studio or VS Code with the Flutter & Dart plugins
 - An emulator or a physical device
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/taskflow.git
-   cd taskflow
